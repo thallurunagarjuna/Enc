@@ -1,0 +1,94 @@
+resource "kubernetes_namespace" "app_namespace" {
+  metadata {
+    name = "my-app-namespace"
+  }
+}
+resource "kubernetes_deployment" "tomcat_deployment" {
+  metadata {
+    name      = "tomcat-app"
+    namespace = kubernetes_namespace.app_namespace.metadata[0].name
+  }
+
+  spec {
+    replicas = 3
+
+    selector {
+      match_labels = {
+        app = "tomcat"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "tomcat"
+        }
+      }
+
+      spec {
+        container {
+          name  = "tomcat"
+          image = "tomcat:latest"  # Change to your desired Tomcat image
+
+          port {
+            container_port = 8080
+          }
+        }
+      }
+    }
+  }
+}
+resource "kubernetes_service" "tomcat_service" {
+  metadata {
+    name      = "tomcat-service"
+    namespace = kubernetes_namespace.app_namespace.metadata[0].name
+  }
+
+  spec {
+    selector = {
+      app = "tomcat"
+    }
+
+    port {
+      port        = 80
+      target_port = 8080
+    }
+  }
+}
+
+resource "kubernetes_stateful_set" "opensearch_statefulset" {
+  metadata {
+    name      = "opensearch"
+    namespace = kubernetes_namespace.app_namespace.metadata[0].name
+  }
+
+  spec {
+    replicas = 3
+    service_name = "opensearch-service"  # This is the headless service associated with the StatefulSet
+
+    selector {
+      match_labels = {
+        app = "opensearch"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          app = "opensearch"
+        }
+      }
+
+      spec {
+        container {
+          name  = "opensearch"
+          image = "opensearchproject/opensearch:latest"  # Change to your desired OpenSearch image
+
+          port {
+            container_port = 9200
+          }
+        }
+      }
+    }
+  }
+}
